@@ -1,0 +1,13 @@
+name: OakCoreLib
+main: com.ignoreourgirth.gary.oakcorelib.OakCoreLib
+version: 1.0
+depend: [Towny, Vault, WorldGuard, Citizens]
+commands:
+   load:
+      permission: oakpluginmanager.admin
+   unload:
+      permission: oakpluginmanager.admin
+   toggle:
+      permission: oakpluginmanager.admin
+   refresh:
+      permission: oakpluginmanager.admin
