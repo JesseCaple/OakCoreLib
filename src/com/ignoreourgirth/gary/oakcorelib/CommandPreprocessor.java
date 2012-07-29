@@ -40,7 +40,9 @@ public class CommandPreprocessor {
 	protected static HashMap<Player, ArrayList<Object>> clickCommandArgs;
 	private static HashMap<String, CommandNode> baseNodes;
 	
-	protected CommandPreprocessor() {
+	protected CommandPreprocessor() {}
+	
+	static {
 		allowedTypes = new HashSet<Class<?>>(); 
 		readableTypes = new HashMap<Class<?>, String>();
 		clickCommand = new HashMap<Player, CommandNode>();

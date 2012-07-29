@@ -186,8 +186,7 @@ public class OakCoreLib extends JavaPlugin implements Listener {
 			return;
 		}
 		
-		getDB();
-		new CommandPreprocessor();
+		getDB();	
 		
 		PluginAdministration pluginAdministration = new PluginAdministration();
 		getCommand("load").setExecutor(pluginAdministration);
@@ -200,6 +199,9 @@ public class OakCoreLib extends JavaPlugin implements Listener {
 		
 		getServer().getPluginManager().registerEvents(xpmp, this);
 		getServer().getPluginManager().registerEvents(new CoreEvents(), this);
+		getServer().getPluginManager().registerEvents(new ProtectedLocations(), this);
+		getServer().getPluginManager().registerEvents(new DisplayItems(), this);
+		getServer().getPluginManager().registerEvents(new ProximityDetection(), this);
 		for (Player player : getServer().getOnlinePlayers()) {
 			xpmp.loadDBData(player);
 		}
