@@ -25,13 +25,14 @@ import org.bukkit.Location;
 import org.bukkit.entity.Item;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
+
+import com.google.common.collect.HashMultimap;
 
 public class DisplayItems implements Listener {
 	
@@ -45,11 +46,9 @@ public class DisplayItems implements Listener {
 	private static HashMap<Integer, Location> idLookup_Chunk;
 	private static HashMap<Integer, Plugin> idLookup_Plugin;
 	
-	private static HashMap<Location, ArrayList<Integer>> blockLocations;
-	private static HashMap<Location, ArrayList<Integer>> chunkLocations;
-	private static HashMap<Plugin, ArrayList<Integer>> registeredPlugins;
-	
-	private int taskID;
+	private static HashMultimap<Location, Integer> blockLocations;
+	private static HashMultimap<Location, Integer> chunkLocations;
+	private static HashMultimap<Plugin, Integer> registeredPlugins;
 	
 	static {
 		idLookup_ItemStack = new HashMap<Integer, ItemStack>();
@@ -58,14 +57,13 @@ public class DisplayItems implements Listener {
 		idLookup_Blocks = new HashMap<Integer, Location[]>();
 		idLookup_Chunk = new HashMap<Integer, Location>();
 		idLookup_Plugin = new HashMap<Integer, Plugin>();
-		blockLocations = new HashMap<Location, ArrayList<Integer>>();
-		chunkLocations = new HashMap<Location, ArrayList<Integer>>();
-		registeredPlugins = new HashMap<Plugin, ArrayList<Integer>>();
+		blockLocations = HashMultimap.create();
+		chunkLocations = HashMultimap.create();
+		registeredPlugins = HashMultimap.create();
 	}
 	
 	protected DisplayItems() {
-		
-		taskID = Bukkit.getServer().getScheduler().scheduleSyncRepeatingTask(OakCoreLib.plugin, new Runnable() {
+		Bukkit.getServer().getScheduler().scheduleSyncRepeatingTask(OakCoreLib.plugin, new Runnable() {
     		public void run() {
     			
     			Iterator<Integer> idIterator = idLookup_ItemStack.keySet().iterator();
@@ -84,30 +82,40 @@ public class DisplayItems implements Listener {
     			
     			Iterator<Plugin> removalIterator = toRemove.iterator();
     			while (removalIterator.hasNext()) {
-    				removeItems(removalIterator.next());
+    				removeAll(removalIterator.next());
     			}
 
     		}
     	}, taskTicks, taskTicks);
 	}
 	
-	protected void unloadAll() {
-		HandlerList.unregisterAll(this);
-		Bukkit.getServer().getScheduler().cancelTask(taskID);
-		Iterator<Plugin> pluginIterator = new HashMap<
-				Plugin,ArrayList<Integer>>(
-				registeredPlugins).keySet().iterator();
-		while (pluginIterator.hasNext()) {
-			removeItems(pluginIterator.next());
-		}
-	}
-	
-	public static void removeItems(Plugin plugin) {
-		Iterator<Integer> idIterator = new ArrayList<Integer>(
-				registeredPlugins.get(plugin)).iterator();
+	public static void removeAll(Plugin plugin) {
+		if (!registeredPlugins.containsKey(plugin)) return;
+		Iterator<Integer> idIterator = registeredPlugins.get(plugin).iterator();
 		while (idIterator.hasNext()) {
-			removeItem(idIterator.next());
+			
+			int ID = idIterator.next();
+			Location[] blocks = idLookup_Blocks.get(ID);
+			Location chunk = idLookup_Chunk.get(ID);
+			
+			clear(ID);
+			
+			if (chunk == null) return;
+			
+			idLookup_ItemStack.remove(ID);
+			idLookup_Location.remove(ID);
+			idLookup_Blocks.remove(ID);
+			idLookup_Chunk.remove(ID);
+			idLookup_Plugin.remove(ID);
+			
+			blockLocations.get(blocks[0]).remove(ID);
+			blockLocations.get(blocks[1]).remove(ID);
+			chunkLocations.get(chunk).remove(ID);
+			
+			ProtectedLocations.remove(blocks[0]);
+			ProtectedLocations.remove(blocks[1]);
 		}
+		registeredPlugins.removeAll(plugin);
 	}
 	
 	public static Integer newItem(ItemStack stack, Location location, Plugin plugin) {
@@ -124,19 +132,6 @@ public class DisplayItems implements Listener {
 		idLookup_Blocks.put(currentItemID, new Location[] {blockA, blockB});
 		idLookup_Chunk.put(currentItemID, chunk);
 		idLookup_Plugin.put(currentItemID, plugin);
-		
-		if (!blockLocations.containsKey(blockA)) {
-			blockLocations.put(blockA, new ArrayList<Integer>());
-		}
-		if (!blockLocations.containsKey(blockB)) {
-			blockLocations.put(blockB, new ArrayList<Integer>());
-		}
-		if (!chunkLocations.containsKey(chunk)) {
-			chunkLocations.put(chunk, new ArrayList<Integer>());
-		}
-		if (!registeredPlugins.containsKey(plugin)) {
-			registeredPlugins.put(plugin, new ArrayList<Integer>());
-		}
 		
 		blockLocations.get(blockA).add(currentItemID);
 		blockLocations.get(blockB).add(currentItemID);
@@ -167,20 +162,10 @@ public class DisplayItems implements Listener {
 		idLookup_Chunk.remove(ID);
 		idLookup_Plugin.remove(ID);
 		
-		ArrayList<Integer> idsBlockA = blockLocations.get(blocks[0]);
-		ArrayList<Integer> idsBlockB = blockLocations.get(blocks[1]);
-		ArrayList<Integer> idsChunk = chunkLocations.get(chunk);
-		ArrayList<Integer> idsPlugin = registeredPlugins.get(plugin);
-		idsBlockA.remove(idsBlockA.indexOf(currentItemID));
-		idsBlockB.remove(idsBlockB.indexOf(currentItemID));
-		idsChunk.remove(idsChunk.indexOf(currentItemID));
-		idsPlugin.remove(idsPlugin.indexOf(currentItemID));
-		if (idsBlockA.size() == 0) blockLocations.remove(blocks[0]);
-		if (idsBlockB.size() == 0) blockLocations.remove(blocks[1]);
-		if (idsChunk.size() == 0) chunkLocations.remove(chunk);
-		if (idsPlugin.size() == 0) registeredPlugins.remove(plugin);
-		
-		OakCoreLib.plugin.getLogger().info("Removed " + ID);
+		blockLocations.get(blocks[0]).remove(ID);
+		blockLocations.get(blocks[1]).remove(ID);
+		chunkLocations.get(chunk).remove(ID);
+		registeredPlugins.get(plugin).remove(ID);
 		
 		ProtectedLocations.remove(blocks[0]);
 		ProtectedLocations.remove(blocks[1]);

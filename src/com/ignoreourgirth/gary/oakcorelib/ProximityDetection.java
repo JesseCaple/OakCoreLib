@@ -29,22 +29,30 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.plugin.Plugin;
 
 import com.google.common.collect.HashMultimap;
 
 public class ProximityDetection implements Listener {
 
-	HashMultimap<Location,Integer> regions;
-	HashMap<Integer,List<Location>> lookup;
-	int nextID;
+	private static HashMultimap<Location,Integer> regions;
+	private static HashMultimap<Plugin,Integer> pluginIDs;
+	private static HashMap<Integer,List<Location>> lookupA;
+	private static HashMap<Integer,Plugin> lookupB;
 	
-	protected ProximityDetection() {
+	private static int nextID;
+	
+	protected ProximityDetection() {}
+	
+	static {
 		regions = HashMultimap.create();
-		lookup = new HashMap<Integer,List<Location>>();
+		pluginIDs = HashMultimap.create();
+		lookupA = new HashMap<Integer,List<Location>>();
+		lookupB = new HashMap<Integer,Plugin>();
 		nextID = 0;
 	}
 	
-	public int add(Location base, int radius) {
+	public static int add(Plugin plugin, Location base, int radius) {
 		nextID++;
 		World world = base.getWorld();
 		ArrayList<Location> locationsAdded = new ArrayList<Location>(); 
@@ -66,17 +74,39 @@ public class ProximityDetection implements Listener {
 				}
 			}
 		}
-		lookup.put(nextID, locationsAdded);
+ 		pluginIDs.put(plugin, nextID);
+		lookupA.put(nextID, locationsAdded);
+		lookupB.put(nextID, plugin);
 		return nextID;
 	}
 	
-	public void remove(int ID) {
-		List<Location> regionLocation = lookup.get(ID);
+	public static void removeAll(Plugin plugin) {
+		Set<Integer> ids = pluginIDs.get(plugin);
+		if (ids == null) return;
+		Iterator<Integer> iteratorA = ids.iterator();
+		while (iteratorA.hasNext()) {
+			int ID = iteratorA.next();
+			List<Location> regionLocation = lookupA.get(ID);
+			Iterator<Location> iteratorB = regionLocation.iterator();
+			while (iteratorB.hasNext()) {
+				regions.get(iteratorB.next()).remove(ID);
+			}
+			lookupA.remove(ID);
+			lookupB.remove(ID);
+		}
+		pluginIDs.removeAll(plugin);
+	}
+	
+	public static void remove(int ID) {
+		Plugin plugin = lookupB.get(ID);
+		List<Location> regionLocation = lookupA.get(ID);
 		Iterator<Location> iterator = regionLocation.iterator();
 		while (iterator.hasNext()) {
 			regions.get(iterator.next()).remove(ID);
 		}
-		lookup.remove(ID);
+		lookupA.remove(ID);
+		lookupB.remove(ID);
+		pluginIDs.remove(plugin, ID);
 	}
 	
 	

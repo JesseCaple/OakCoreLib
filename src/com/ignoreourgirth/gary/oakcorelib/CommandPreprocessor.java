@@ -116,26 +116,59 @@ public class CommandPreprocessor {
 	}
 	
 	protected static Object castToType(String string, Class<?> type) {
+		
 		try {
-			if (type == byte.class || type == Byte.class) {
-				return Byte.parseByte(string);
-			} else if (type == short.class || type == Short.class) {
-				return Short.parseShort(string);
-			} else if (type == int.class || type == Integer.class) {
-				return Integer.parseInt(string);
-			} else if (type == long.class || type == Long.class) {
-				return Long.parseLong(string);
-			} else if (type == float.class || type == Float.class) {
-				return Float.parseFloat(string);
-			} else if (type == double.class || type == Double.class) {
-				return Double.parseDouble(string);
-			} else if (type ==  boolean.class || type == Boolean.class) {
-				return Boolean.parseBoolean(string);
-			} else if (type == String.class) {
-				return string;
-			} else if (type == char.class || type == Character.class) {
-				if (string.length() == 1) return string.charAt(0);
+			if (string != null) {
+				if (type == byte.class || type == Byte.class) {
+					return Byte.parseByte(string);
+				} else if (type == short.class || type == Short.class) {
+					return Short.parseShort(string);
+				} else if (type == int.class || type == Integer.class) {
+					return Integer.parseInt(string);
+				} else if (type == long.class || type == Long.class) {
+					return Long.parseLong(string);
+				} else if (type == float.class || type == Float.class) {
+					return Float.parseFloat(string);
+				} else if (type == double.class || type == Double.class) {
+					return Double.parseDouble(string);
+				} else if (type ==  boolean.class || type == Boolean.class) {
+					return Boolean.parseBoolean(string);
+				} else if (type == String.class) {
+					return string;
+				} else if (type == char.class || type == Character.class) {
+					if (string.length() == 1) return string.charAt(0);
+				}
+			} else {
+				if (type == byte.class || type == Byte.class) {
+					Byte byteObject = 0;
+					return byteObject;
+				} else if (type == short.class || type == Short.class) {
+					Short shortObject = 0;
+					return shortObject;
+				} else if (type == int.class || type == Integer.class) {
+					Integer intObject = 0;
+					return intObject;
+				} else if (type == long.class || type == Long.class) {
+					Long longObject = 0l;
+					return longObject;
+				} else if (type == float.class || type == Float.class) {
+					Float floatObject = 0f;
+					return floatObject;
+				} else if (type == double.class || type == Double.class) {
+					Double doubleObject = 0d;
+					return doubleObject;
+				} else if (type ==  boolean.class || type == Boolean.class) {
+					Boolean boolObject = false;
+					return boolObject;
+				} else if (type == String.class) {
+					String stringObject = new String();
+					return stringObject;
+				} else if (type == char.class || type == Character.class) {
+					Character charObject = ' ';
+					return charObject;
+				}
 			}
+
 			return null;
 		} catch (Throwable e) {
 			return null;

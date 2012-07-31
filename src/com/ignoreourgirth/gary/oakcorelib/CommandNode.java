@@ -197,7 +197,8 @@ class CommandNode {
 		if (!checkSelfPermissions(player)) return;
 		ArrayList<Object> finalArguments = new ArrayList<Object>();
 		if (hasPlayerParam) finalArguments.add(player);
-		if (paramTypes.length == args.length - optionalParams) {
+		if (args.length >= paramTypes.length - optionalParams &&
+				args.length <= paramTypes.length) {
 			for (int i=0; i< paramTypes.length; i++) {
 				if (i < args.length) {
 					Object nextObject = CommandPreprocessor.castToType(args[i], paramTypes[i]); 
@@ -210,7 +211,8 @@ class CommandNode {
 						return;
 					}
 				} else {
-					finalArguments.add(null);
+					Object nextObject = CommandPreprocessor.castToType(null, paramTypes[i]); 
+					finalArguments.add(nextObject);
 				}
 			}
 			if (isClickCommand) {
@@ -219,7 +221,8 @@ class CommandNode {
 				return;
 			}
 			try {
-				method.invoke(executor, finalArguments.toArray(new Object[finalArguments.size()]));
+				Object[] finalArgs = finalArguments.toArray(new Object[finalArguments.size()]);
+				method.invoke(executor, finalArgs);
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();
 				OakCoreLib.plugin.getLogger().log(Level.SEVERE, e.getMessage());
@@ -309,14 +312,21 @@ class CommandNode {
 		
 		message = new StringBuilder();
 		if (paramTypes.length > 0) {
+			int optionalsStartAt = paramTypes.length - optionalParams;
 			message.append(ChatColor.WHITE.toString());
 			message.append("Arguments: ");
 			message.append(ChatColor.LIGHT_PURPLE.toString());
 			for (int i=0; i < paramTypes.length; i++) {
+				if (i >= optionalsStartAt) {
+					message.append(ChatColor.WHITE.toString() + '(' + ChatColor.LIGHT_PURPLE);
+				}
 				if (i < paramLabels.length) {
 					message.append(paramLabels[i]);
 				} else {
 					message.append(CommandPreprocessor.readableTypes.get(paramTypes[i]));
+				}
+				if (i >= optionalsStartAt) {
+					message.append(ChatColor.WHITE.toString() + ')' + ChatColor.LIGHT_PURPLE);
 				}
 				if (i+1 < paramTypes.length) message.append(" ");	
 			}
