@@ -17,10 +17,10 @@
 package com.ignoreourgirth.gary.oakcorelib;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -32,11 +32,13 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.Plugin;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 public class ProximityDetection implements Listener {
 
-	private static HashMultimap<Location,Integer> regions;
-	private static HashMultimap<Plugin,Integer> pluginIDs;
+	private static Multimap<Location,Integer> regions;
+	private static Multimap<Plugin,Integer> pluginIDs;
 	private static HashMap<Integer,List<Location>> lookupA;
 	private static HashMap<Integer,Plugin> lookupB;
 	
@@ -45,8 +47,10 @@ public class ProximityDetection implements Listener {
 	protected ProximityDetection() {}
 	
 	static {
-		regions = HashMultimap.create();
-		pluginIDs = HashMultimap.create();
+		regions = Multimaps.synchronizedMultimap(
+			      HashMultimap.<Location, Integer>create());
+		pluginIDs = Multimaps.synchronizedMultimap(
+			      HashMultimap.<Plugin, Integer>create());
 		lookupA = new HashMap<Integer,List<Location>>();
 		lookupB = new HashMap<Integer,Plugin>();
 		nextID = 0;
@@ -65,48 +69,62 @@ public class ProximityDetection implements Listener {
 		int maxY = baseY + radius;
 		int minZ = baseZ - radius;
 		int maxZ = baseZ + radius;
-		for (int x=minX; x <= maxX; x++) {
-			for (int y=minY; y <= maxY; y++) {
-				for (int z=minZ; z <= maxZ; z++) {
-					Location nextLocation = new Location(world, x, y, z);
-					regions.put(nextLocation, nextID);
-					locationsAdded.add(nextLocation);
+		synchronized(regions) {
+			for (int x=minX; x <= maxX; x++) {
+				for (int y=minY; y <= maxY; y++) {
+					for (int z=minZ; z <= maxZ; z++) {
+						Location nextLocation = new Location(world, x, y, z);
+						regions.put(nextLocation, nextID);
+						locationsAdded.add(nextLocation);
+					}
 				}
 			}
 		}
- 		pluginIDs.put(plugin, nextID);
+		synchronized(pluginIDs) {
+			pluginIDs.put(plugin, nextID);
+		}
 		lookupA.put(nextID, locationsAdded);
 		lookupB.put(nextID, plugin);
 		return nextID;
 	}
 	
 	public static void removeAll(Plugin plugin) {
-		Set<Integer> ids = pluginIDs.get(plugin);
-		if (ids == null) return;
-		Iterator<Integer> iteratorA = ids.iterator();
-		while (iteratorA.hasNext()) {
-			int ID = iteratorA.next();
-			List<Location> regionLocation = lookupA.get(ID);
-			Iterator<Location> iteratorB = regionLocation.iterator();
-			while (iteratorB.hasNext()) {
-				regions.get(iteratorB.next()).remove(ID);
+		synchronized(pluginIDs) {
+			Collection<Integer> ids = pluginIDs.get(plugin);
+			if (ids == null) return;
+			Iterator<Integer> iteratorA = ids.iterator();
+			while (iteratorA.hasNext()) {
+				int ID = iteratorA.next();
+				List<Location> regionLocation = lookupA.get(ID);
+				Iterator<Location> iteratorB = regionLocation.iterator();
+				synchronized(regions) {
+					while (iteratorB.hasNext()) {
+						regions.get(iteratorB.next()).remove(ID);
+					}
+				}
+				lookupA.remove(ID);
+				lookupB.remove(ID);
 			}
-			lookupA.remove(ID);
-			lookupB.remove(ID);
+			synchronized(pluginIDs) {
+				pluginIDs.removeAll(plugin);
+			}
 		}
-		pluginIDs.removeAll(plugin);
 	}
 	
 	public static void remove(int ID) {
 		Plugin plugin = lookupB.get(ID);
 		List<Location> regionLocation = lookupA.get(ID);
 		Iterator<Location> iterator = regionLocation.iterator();
-		while (iterator.hasNext()) {
-			regions.get(iterator.next()).remove(ID);
+		synchronized(regions) {
+			while (iterator.hasNext()) {
+				regions.get(iterator.next()).remove(ID);
+			}
 		}
 		lookupA.remove(ID);
 		lookupB.remove(ID);
-		pluginIDs.remove(plugin, ID);
+		synchronized(pluginIDs) {
+			pluginIDs.remove(plugin, ID);
+		}
 	}
 	
 	
@@ -114,11 +132,17 @@ public class ProximityDetection implements Listener {
 	public void onPlayerMove(PlayerMoveEvent event) {
 		Location location = event.getTo().getBlock().getLocation();
 		if (regions.containsKey(location)) {
-			Set<Integer> idSet = regions.get(location);
-			Iterator<Integer> iterator = idSet.iterator();
-			while (iterator.hasNext()) {
-				Bukkit.getServer().getPluginManager().callEvent(
-						new ProximityEvent(iterator.next(), event.getPlayer()));
+			synchronized(regions) {
+				List<ProximityEvent> eventsToCall = new ArrayList<ProximityEvent>();
+				Collection<Integer> idSet = regions.get(location);
+				Iterator<Integer> iterator = idSet.iterator();
+				while (iterator.hasNext()) {
+					int nextValue = new Integer(iterator.next());
+					eventsToCall.add(new ProximityEvent(nextValue, event.getPlayer()));
+				}
+				for (ProximityEvent eventToCall : eventsToCall) {
+					Bukkit.getServer().getPluginManager().callEvent(eventToCall);
+				}
 			}
 		}
 	}

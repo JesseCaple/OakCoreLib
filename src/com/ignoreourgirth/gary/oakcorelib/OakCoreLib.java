@@ -26,8 +26,12 @@ import java.util.logging.Level;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -51,7 +55,6 @@ public class OakCoreLib extends JavaPlugin implements Listener {
 	protected static Plugin plugin;
 	protected static HashSet<LivingEntity> mobSpawnerMobs;
 	
-	private static boolean initDone;
 	private static Connection dbConnection;
 	private static XPMP xpmp;
 	private static Economy plugin_Economy;
@@ -59,7 +62,6 @@ public class OakCoreLib extends JavaPlugin implements Listener {
 	private static WorldGuardPlugin plugin_WorldGuard;
 	
 	public static final String bankPrefix = "!worldbank_";
-	public static boolean intialized() {return initDone;}
 	public static Economy getEconomy() {return plugin_Economy;}
 	public static Permission getPermission() {return plugin_Permission;}
 	public static WorldGuardPlugin getWorldGuard() {return plugin_WorldGuard;}
@@ -206,7 +208,13 @@ public class OakCoreLib extends JavaPlugin implements Listener {
 			xpmp.loadDBData(player);
 		}
 		
-		initDone = true;
+		for (World world : Bukkit.getWorlds()) {
+			for (Entity entity : world.getEntities()) {
+				if (entity instanceof Item) {
+					entity.remove();
+				}
+			}
+		}
 	}
 	
 	public void onDisable() {

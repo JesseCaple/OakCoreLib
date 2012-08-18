@@ -41,13 +41,12 @@ final public class NPCUtils {
 	}
 	
 	public static boolean isNear(Player player, String[] npcNames, String messageOnNotFound) {
-		for(Entity entity : player.getNearbyEntities(6, 4, 6))
-		{
+		for(Entity entity : player.getNearbyEntities(6, 4, 6)) {
 		    if(entity instanceof HumanEntity)
 		    {
 		    	HumanEntity humanEntity = (HumanEntity) entity;
 		    	for (String name : npcNames) {
-		    		if (humanEntity.getName().equals(name)) return true;
+		    		if (humanEntity.getName().substring(2).equals(name)) return true;
 		    	}
 		    }
 		}
