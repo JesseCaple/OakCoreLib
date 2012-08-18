@@ -40,8 +40,8 @@ public class ProtectedLocations implements Listener {
 	private static HashMultiset<Location> cancelExplosionSet;
 	
 	static {
-		locations = HashMultiset.create();
-		cancelExplosionSet = HashMultiset.create();
+		locations = HashMultiset.<Location>create();
+		cancelExplosionSet = HashMultiset.<Location>create();
 	}
 	
 	protected ProtectedLocations() {}
