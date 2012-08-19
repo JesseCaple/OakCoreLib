@@ -127,7 +127,7 @@ public class DisplayItems implements Listener {
 		Location chunk = blockA.getChunk().getBlock(0, 0, 0).getLocation().clone();
 		Location centered = blockB.clone().add(.5,.2,.5);
 		
-		idLookup_ItemStack.put(currentItemID, new ItemStack(stack.getType(), stack.getAmount()));
+		idLookup_ItemStack.put(currentItemID, stack.clone());
 		idLookup_Location.put(currentItemID, centered);
 		idLookup_Blocks.put(currentItemID, new Location[] {blockA, blockB});
 		idLookup_Chunk.put(currentItemID, chunk);
